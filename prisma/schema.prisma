@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  fullName      String
+  phone         String     @unique
+  email         String     @unique
+  password      String
+  role          Role       @default(USER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  chat_room_ids String[]   @db.ObjectId()
+  chat_rooms    ChatRoom[] @relation(fields: [chat_room_ids], references: [id])
+  owned_rooms   ChatRoom[] @relation("owned_rooms")
+  Message       Message[]
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model ChatRoom {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  created_by_user_id String    @db.ObjectId
+  created_by         User      @relation("owned_rooms", fields: [created_by_user_id], references: [id])
+  user_ids           String[]  @db.ObjectId()
+  users              User[]    @relation(fields: [user_ids], references: [id])
+  Message            Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([created_by_user_id])
+}
+
+model Message {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  chat_room_id String   @db.ObjectId
+  chat_room    ChatRoom @relation(fields: [chat_room_id], references: [id])
+  user_id      String   @db.ObjectId
+  user         User     @relation(fields: [user_id], references: [id])
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([chat_room_id])
+  @@index([user_id])
+}
